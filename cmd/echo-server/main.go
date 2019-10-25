@@ -24,7 +24,6 @@ func RunServer(addr string, sslAddr string, ssl map[string]string) chan error {
 		if err := http.ListenAndServe(addr, nil); err != nil {
             		errs <- err
         	}
-
 	}()
 
 	go func() {
@@ -70,16 +69,38 @@ var upgrader = websocket.Upgrader{
 }
 
 func handler(wr http.ResponseWriter, req *http.Request) {
-	fmt.Printf("%s | %s %s\n", req.RemoteAddr, req.Method, req.URL)
+	fmt.Printf("%s | %s | %s %s\n", req.RemoteAddr, req.UserAgent(), req.Method, req.URL)
 	if websocket.IsWebSocketUpgrade(req) {
 		serveWebSocket(wr, req)
-	} else if req.URL.Path == "/ws" {
+	}	else if req.URL.Path == "/ws" {
 		wr.Header().Add("Content-Type", "text/html")
 		wr.WriteHeader(200)
 		io.WriteString(wr, websocketHTML)
-	} else {
+	} else if req.URL.Path == "/health" {
+		healthEndpoint(wr, req)
+	}	else {
 		serveHTTP(wr, req)
 	}
+}
+
+func healthEndpoint(wr http.ResponseWriter, req *http.Request) {
+
+	// Health Check endpoint
+
+	type Health struct {
+		Status    string
+	}
+
+	health := Health{"ok"}
+
+	healthResponse, err := json.Marshal(health)
+	if err != nil {
+			panic(err)
+	}
+
+	wr.Header().Set("Content-Type", "application/json")
+	wr.Write(healthResponse)
+
 }
 
 func serveWebSocket(wr http.ResponseWriter, req *http.Request) {
