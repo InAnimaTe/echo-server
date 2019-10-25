@@ -14,16 +14,17 @@ RUN go get -d -v ./... && \
 
 FROM scratch
 
-COPY --from=build /go/src/app/echo-server /bin/echo-server
-COPY --from=build /go/src/app/cert.pem /bin/cert.pem
-COPY --from=build /go/src/app/key.pem /bin/key.pem
+WORKDIR /bin
+
+COPY --from=build /go/src/app/echo-server .
+COPY --from=build /go/src/app/cert.pem .
+COPY --from=build /go/src/app/key.pem .
 
 ENV PORT 8080
 ENV SSLPORT 8443
 
-EXPOSE 8080 8443
+EXPOSE "$PORT" "$SSLPORT"
 
 ENV ADD_HEADERS='{"X-Real-Server": "echo-server"}'
 
-WORKDIR /bin
 ENTRYPOINT ["/bin/echo-server"]
